@@ -61,7 +61,7 @@ public class OpenIDConnectAuthModule extends OAuthModule {
             throw new AuthException(MessageFormat.format(R.getString("missingOption"), ISSUER_URI_KEY));
         }
         return restClient.target(URI.create(issuerUri)
-                .resolve("/.well-known/openid-configuration"))
+                .resolve((issuerUri.charAt(issuerUri.length()-1)=='/' ? "" : "/") + ".well-known/openid-configuration"))
                 .request(MediaType.APPLICATION_JSON_TYPE)
                 .get(OpenIDProviderConfiguration.class);
     }

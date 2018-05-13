@@ -26,10 +26,12 @@ import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
+import java.util.ArrayList;
 
 import javax.crypto.SecretKey;
 import javax.json.Json;
 import javax.json.JsonObject;
+import javax.json.JsonString;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 import javax.security.auth.Subject;
@@ -587,9 +589,10 @@ public abstract class OAuthModule implements ServerAuthModule, ServerAuthContext
         updateSubjectPrincipal(subject, claimsSet);
 
         final TokenCookie tokenCookie;
-        if (oidProviderConfig.getUserinfoEndpoint() != null && Pattern.compile("\\bprofile\\b")
+        if (oidProviderConfig.getUserinfoEndpoint() != null 
+                /*&& Pattern.compile("\\bprofile\\b")
                 .matcher(scope)
-                .find()) {
+                .find()*/) {
             final Response userInfoResponse = restClient.target(oidProviderConfig.getUserinfoEndpoint())
                     .request(MediaType.APPLICATION_JSON_TYPE)
                     .header("Authorization", token.getTokenType() + " " + token.getAccessToken())
@@ -702,8 +705,12 @@ public abstract class OAuthModule implements ServerAuthModule, ServerAuthContext
      */
     public boolean isCallback(final HttpServletRequest req) {
 
-        return moduleOptions.get(REDIRECTION_ENDPOINT_URI_KEY)
-                .equals(req.getRequestURI()) && isRetrievalRequest(req) && !isNullOrEmpty(req.getParameter(CODE)) && !isNullOrEmpty(req.getParameter(STATE));
+        return 
+                // Disabled check for URI being same as redirection endpoint URI, 
+                // because if including hostname in the config they won't match
+                // moduleOptions.get(REDIRECTION_ENDPOINT_URI_KEY)
+                // .equals(req.getRequestURI()) &&
+                isRetrievalRequest(req) && !isNullOrEmpty(req.getParameter(CODE)) && !isNullOrEmpty(req.getParameter(STATE));
     }
 
     /**
@@ -874,10 +881,25 @@ public abstract class OAuthModule implements ServerAuthModule, ServerAuthContext
 
         try {
             final String iss = googleWorkaround(jwtPayload.getString("iss"));
-            handler.handle(new Callback[] { new CallerPrincipalCallback(subject, UriBuilder.fromUri(iss)
-                    .userInfo(jwtPayload.getString("sub"))
-                    .build()
-                    .toASCIIString()), new GroupPrincipalCallback(subject, new String[] { iss }) });
+            
+            ArrayList<String> groups = new ArrayList();
+            groups.add(iss);
+            
+            if(jwtPayload.containsKey("cognito:groups")) {    
+                jwtPayload.getJsonArray("cognito:groups")
+                        .getValuesAs(JsonString.class).stream()
+                        .forEach(v -> groups.add(v.getString()));
+            }
+                       
+            handler.handle(new Callback[] { 
+                    new CallerPrincipalCallback(subject, UriBuilder.fromUri(iss)
+                        .userInfo(jwtPayload.getString("sub"))
+                        .build()
+                        .toASCIIString()),
+                    new GroupPrincipalCallback(subject, groups.toArray(new String[0])) 
+                }
+            );
+            
         } catch (final IOException | UnsupportedCallbackException e) {
             // Should not happen
             LOG.log(Level.SEVERE, "updatePrincipalException", e.getMessage());
