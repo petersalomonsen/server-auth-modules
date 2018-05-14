@@ -418,10 +418,16 @@ public abstract class OAuthModule implements ServerAuthModule, ServerAuthContext
      * @return redirection endpoint URI.
      */
     protected URI getRedirectionEndpointUri(final HttpServletRequest req) {
-
-        return URI.create(req.getRequestURL()
+        if(req.getHeader("referer")==null) {
+            return URI.create("http://localhost:4200").resolve(redirectionEndpointUri);
+        } else if(req.getHeader("referer").indexOf("http://localhost")==0) {
+            return URI.create(req.getHeader("referer")).resolve(redirectionEndpointUri);
+        } else {
+            return URI.create(req.getRequestURL()
                 .toString())
                 .resolve(redirectionEndpointUri);
+            
+        }
     }
 
     /**
@@ -819,9 +825,7 @@ public abstract class OAuthModule implements ServerAuthModule, ServerAuthContext
                     .queryParam(CLIENT_ID, clientId)
                     .queryParam(RESPONSE_TYPE, "code")
                     .queryParam(SCOPE, scope)
-                    .queryParam(REDIRECT_URI, URI.create(req.getRequestURL()
-                            .toString())
-                            .resolve(moduleOptions.get(REDIRECTION_ENDPOINT_URI_KEY)))
+                    .queryParam(REDIRECT_URI, getRedirectionEndpointUri((req)))
                             .queryParam(STATE, state)
                             .queryParam("nonce", nonce)
                             .build();
