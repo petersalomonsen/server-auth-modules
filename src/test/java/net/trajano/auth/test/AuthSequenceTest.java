@@ -325,6 +325,7 @@ public class AuthSequenceTest {
 
         final HttpServletRequest servletRequest = mock(HttpServletRequest.class);
         when(servletRequest.getMethod()).thenReturn("GET");
+        when(servletRequest.getHeader("referer")).thenReturn("https://i.trajano.net:8443/");
         when(servletRequest.getRequestURL()).thenReturn(new StringBuffer("https://i.trajano.net:8443/util/ejb2"));
         when(servletRequest.getContextPath()).thenReturn("/util");
         when(servletRequest.getRequestURI()).thenReturn("/util/ejb2");
