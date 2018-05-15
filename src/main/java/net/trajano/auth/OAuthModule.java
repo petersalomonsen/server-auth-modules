@@ -900,6 +900,8 @@ public abstract class OAuthModule implements ServerAuthModule, ServerAuthContext
                         .userInfo(jwtPayload.getString("sub"))
                         .build()
                         .toASCIIString()),
+                    // Start with a null group since this is additive to the subject
+                    new GroupPrincipalCallback(subject, null),
                     new GroupPrincipalCallback(subject, groups.toArray(new String[0])) 
                 }
             );
