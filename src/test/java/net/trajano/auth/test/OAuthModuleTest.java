@@ -6,17 +6,23 @@ import static org.mockito.Mockito.when;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.lang.reflect.Field;
+import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Scanner;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
+import javax.security.auth.message.AuthException;
 
 import javax.security.auth.message.MessagePolicy;
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.client.Client;
 
 import net.trajano.auth.OAuthModule;
 import net.trajano.auth.OpenIDConnectAuthModule;
 import net.trajano.auth.internal.Base64;
+import net.trajano.auth.internal.OpenIDProviderConfiguration;
 
 import org.junit.Test;
 
@@ -84,5 +90,37 @@ public class OAuthModuleTest {
 
         final OpenIDConnectAuthModule module = new OpenIDConnectAuthModule();
         module.initialize(mockPolicy, null, null, options);
+    }
+    
+    @Test
+    public void testGetRedirectionEndpointUri() throws Exception {
+        class OAM extends OAuthModule {
+            
+            public OAM() {                
+            }
+            
+            @Override
+            public URI getRedirectionEndpointUri(HttpServletRequest req) {
+                return super.getRedirectionEndpointUri(req); //To change body of generated methods, choose Tools | Templates.
+            }
+
+            @Override
+            protected OpenIDProviderConfiguration getOpenIDProviderConfig(HttpServletRequest req, Client client, Map<String, String> options) throws AuthException {
+                throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+            }            
+        }
+        
+        OAM oam = new OAM();
+        Field uriFld = OAuthModule.class.getDeclaredField("redirectionEndpointUri");
+        uriFld.setAccessible(true);
+        uriFld.set(oam,"/someendpoint");
+        
+        final HttpServletRequest servletRequest = mock(HttpServletRequest.class);
+        when(servletRequest.getRequestURL())
+            .thenReturn(new StringBuffer("http://localhost:4200/blablabla"));
+        
+        URI u = oam.getRedirectionEndpointUri(servletRequest);
+        
+        assertEquals("http://localhost:4200/someendpoint", u.toASCIIString());        
     }
 }

@@ -418,13 +418,18 @@ public abstract class OAuthModule implements ServerAuthModule, ServerAuthContext
      * @return redirection endpoint URI.
      */
     protected URI getRedirectionEndpointUri(final HttpServletRequest req) {
-        if(req.getHeader("referer")==null) {
-            return URI.create("http://localhost:4200").resolve(redirectionEndpointUri);
-        } else if(req.getHeader("referer").indexOf("http://localhost")==0) {
+//        if(req.getHeader("referer")==null) {
+//            return URI.create("http://localhost:4200").resolve(redirectionEndpointUri);
+//        } else 
+
+	final String requestURL = req.getRequestURL().toString();
+
+	if(req.getHeader("referer")!=null && req.getHeader("referer").indexOf("http://localhost")==0) {
             return URI.create(req.getHeader("referer")).resolve(redirectionEndpointUri);
-        } else {
-            return URI.create(req.getRequestURL()
-                .toString())
+        } else if(requestURL.indexOf("http://localhost")==0) {
+	    return URI.create(requestURL).resolve(redirectionEndpointUri);
+	} else {
+            return URI.create(requestURL)
                 .resolve(redirectionEndpointUri);
             
         }
